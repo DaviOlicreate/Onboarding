@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Onboarding</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- html2pdf.js para gerar o PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <style>
+        /* Esconde o template do PDF até a hora de gerar */
+        #pdf-template { display: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen font-sans text-gray-800">
+
+    <!-- CABEÇALHO ADMIN -->
+    <header class="bg-white shadow-sm border-b border-gray-200 p-4 flex justify-between items-center">
+        <h1 class="text-xl font-bold text-gray-800 flex items-center">
+            <svg class="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"></path></svg>
+            Painel Admin
+        </h1>
+        <button id="btn-logout" class="hidden text-sm text-gray-600 hover:text-red-600 font-medium">Sair</button>
+    </header>
+
+    <!-- CONTAINER PRINCIPAL -->
+    <main class="max-w-5xl mx-auto p-6 mt-8">
+        
+        <!-- SESSÃO DE LOGIN -->
+        <section id="login-section" class="max-w-md mx-auto bg-white p-8 rounded-lg shadow-md mt-10">
+            <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Acesso Restrito</h2>
+            <p class="text-sm text-gray-600 mb-6 text-center">Faça login com a conta criada no painel do Supabase.</p>
+            <form id="login-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Email</label>
+                    <input type="email" id="email" required class="mt-1 w-full border border-gray-300 rounded-md p-2 px-3 text-sm focus:border-blue-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Senha</label>
+                    <input type="password" id="password" required class="mt-1 w-full border border-gray-300 rounded-md p-2 px-3 text-sm focus:border-blue-500 focus:outline-none">
+                </div>
+                <div id="login-error" class="hidden text-red-600 text-sm mt-2">Credenciais inválidas.</div>
+                <button type="submit" class="w-full bg-[#0060ff] hover:bg-blue-700 text-white font-medium py-2 rounded-md transition-colors">
+                    Entrar
+                </button>
+            </form>
+        </section>
+
+        <!-- SESSÃO DE DASHBOARD (Respostas) -->
+        <section id="dashboard-section" class="hidden">
+            <div class="flex justify-between items-end mb-6">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800">Respostas Recebidas</h2>
+                    <p class="text-sm text-gray-500 mt-1">Lista de clientes que preencheram o formulário de onboarding.</p>
+                </div>
+                <button onclick="fetchRespostas()" class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                    <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Atualizar
+                </button>
+            </div>
+
+            <!-- Tabela -->
+            <div class="bg-white rounded-lg shadow overflow-hidden border border-gray-200">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Carregando... -->
+                        <tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Carregando respostas...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- TEMPLATE OCULTO PARA GERAR O PDF -->
+    <!-- Este container tem a mesma estrutura de layout do formulário original para ficar bonito no PDF -->
+    <div id="pdf-template" class="bg-[#5b58ff] min-h-screen font-sans text-gray-800 p-8 w-[800px]">
+        <div class="bg-white w-full rounded-lg p-10 shadow-lg" id="pdf-content">
+            <!-- Cabeçalho -->
+            <div class="mb-10 text-left">
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Parceria de sucesso!</h1>
+                <p class="text-gray-500 text-sm">Respostas do formulário de Onboarding</p>
+                <div class="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-sm">
+                    <div><span class="font-semibold text-gray-700">Cliente:</span> <span id="pdf-cliente" class="text-gray-600"></span></div>
+                    <div><span class="font-semibold text-gray-700">Empresa:</span> <span id="pdf-empresa" class="text-gray-600"></span></div>
+                    <div><span class="font-semibold text-gray-700">Data:</span> <span id="pdf-data" class="text-gray-600"></span></div>
+                </div>
+            </div>
+            <!-- Container das Respostas -->
+            <div id="pdf-answers" class="space-y-6">
+                <!-- Preenchido via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL -->
+    <script>
+        // Mesmas chaves do index.html
+        const SUPABASE_URL = "https://xcgueapbqzhapwckbhgd.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjZ3VlYXBicXpoYXB3Y2tiaGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDMwMzIsImV4cCI6MjA5Nzk3OTAzMn0.Sa1sWQeDfY5c5RTeNLK9TQPstN9-mTh-eu5zZK8U16U";
+
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // Elementos UI
+        const loginSection = document.getElementById('login-section');
+        const dashboardSection = document.getElementById('dashboard-section');
+        const loginForm = document.getElementById('login-form');
+        const btnLogout = document.getElementById('btn-logout');
+        const loginError = document.getElementById('login-error');
+        const tableBody = document.getElementById('table-body');
+        
+        let respostasLocais = [];
+
+        // Verifica estado de autenticação
+        async function checkAuth() {
+            const { data: { session } } = await supabaseClient.auth.getSession();
+            if (session) {
+                loginSection.classList.add('hidden');
+                dashboardSection.classList.remove('hidden');
+                btnLogout.classList.remove('hidden');
+                fetchRespostas();
+            } else {
+                loginSection.classList.remove('hidden');
+                dashboardSection.classList.add('hidden');
+                btnLogout.classList.add('hidden');
+            }
+        }
+
+        // Fazer Login
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            loginError.classList.add('hidden');
+            const btn = e.target.querySelector('button');
+            btn.innerText = "Entrando...";
+            
+            const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+            
+            if (error) {
+                loginError.classList.remove('hidden');
+                loginError.innerText = error.message;
+                btn.innerText = "Entrar";
+            } else {
+                checkAuth();
+            }
+        });
+
+        // Fazer Logout
+        btnLogout.addEventListener('click', async () => {
+            await supabaseClient.auth.signOut();
+            checkAuth();
+        });
+
+        // Buscar respostas do Supabase
+        async function fetchRespostas() {
+            tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Carregando respostas...</td></tr>';
+            
+            // Requer que a política "Permitir leitura apenas para autenticados" tenha sido criada
+            const { data, error } = await supabaseClient
+                .from('respostas_onboarding')
+                .select('*')
+                .order('created_at', { ascending: false });
+                
+            if (error) {
+                console.error("Erro ao buscar dados:", error);
+                tableBody.innerHTML = `<tr><td colspan="4" class="px-6 py-10 text-center text-red-500">Erro: ${error.message}</td></tr>`;
+                return;
+            }
+
+            respostasLocais = data;
+            renderTable(data);
+        }
+
+        // Renderizar a tabela
+        function renderTable(data) {
+            if (data.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="4" class="px-6 py-10 text-center text-gray-500">Nenhuma resposta encontrada.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            data.forEach((row, index) => {
+                const date = new Date(row.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute:'2-digit' });
+                
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-gray-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${row.empresa || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${row.nome_cliente || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <button onclick="gerarPDF(${index})" class="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md transition-colors flex items-center inline-flex">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            Gerar PDF
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+        }
+
+        // Montar HTML do PDF e Baixar
+        function gerarPDF(index) {
+            const data = respostasLocais[index];
+            if (!data) return;
+
+            // 1. Preencher Cabeçalho
+            document.getElementById('pdf-cliente').innerText = data.nome_cliente || 'N/A';
+            document.getElementById('pdf-empresa').innerText = data.empresa || 'N/A';
+            document.getElementById('pdf-data').innerText = new Date(data.created_at).toLocaleDateString('pt-BR');
+
+            // 2. Preencher Perguntas e Respostas
+            const container = document.getElementById('pdf-answers');
+            container.innerHTML = ''; // Limpa anterior
+
+            const dadosObjeto = data.dados;
+            
+            for (const [pergunta, resposta] of Object.entries(dadosObjeto)) {
+                const block = document.createElement('div');
+                block.className = 'border-b border-gray-100 pb-4 mb-4';
+                block.style.pageBreakInside = 'avoid'; // Evita corte no meio da pergunta no PDF
+                
+                block.innerHTML = `
+                    <div class="text-[13px] font-semibold text-gray-800 mb-1">${pergunta}</div>
+                    <div class="text-[14px] text-gray-600 bg-gray-50 p-3 rounded border border-gray-100 min-h-[40px] whitespace-pre-wrap">${resposta || 'N/A'}</div>
+                `;
+                container.appendChild(block);
+            }
+
+            // 3. Gerar PDF
+            const element = document.getElementById('pdf-template');
+            element.style.display = 'block'; // Mostra temporariamente (fica fora da tela ou escondido se não estragar layout)
+
+            const opt = {
+                margin:       0,
+                filename:     `Onboarding - ${data.empresa || 'Empresa'}.pdf`,
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { scale: 2, useCORS: true, logging: false },
+                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+            };
+
+            // Para garantir que renderiza com os estilos aplicados, fazemos direto do id pdf-content 
+            const contentToPrint = document.getElementById('pdf-content');
+
+            // Gera e salva
+            html2pdf().set(opt).from(contentToPrint).save().then(() => {
+                element.style.display = 'none'; // Oculta novamente
+            });
+        }
+
+        // Iniciar
+        checkAuth();
+
+    </script>
+</body>
+</html>
