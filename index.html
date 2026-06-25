@@ -65,28 +65,19 @@
         </div>
     </div>
 
-    <!-- LÓGICA DO FIREBASE E DO FORMULÁRIO -->
-    <script type="module">
-        // Importa o Firebase SDK (v10 Modular)
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
+    <!-- LÓGICA DO SUPABASE E DO FORMULÁRIO -->
+    <!-- Importa o Supabase SDK via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
         // ==========================================
         // ⚠️ ATENÇÃO: COLOQUE SUAS CREDENCIAIS AQUI!
         // ==========================================
-        const firebaseConfig = {
-            apiKey: "SUA_API_KEY",
-            authDomain: "SEU_AUTH_DOMAIN",
-            projectId: "SEU_PROJECT_ID",
-            storageBucket: "SEU_STORAGE_BUCKET",
-            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-            appId: "SEU_APP_ID"
-        };
+        const SUPABASE_URL = "SUA_SUPABASE_URL";
+        const SUPABASE_ANON_KEY = "SUA_SUPABASE_ANON_KEY";
 
-        // Inicializa o Firebase
-        // Descomente as duas linhas abaixo quando inserir as credenciais do Firebase
-        // const app = initializeApp(firebaseConfig);
-        // const db = getFirestore(app);
+        // Inicializa o Supabase
+        // Descomente a linha abaixo quando inserir as credenciais
+        // const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ==========================================
         // LÓGICA DO FORMULÁRIO
@@ -187,21 +178,25 @@
             statusMessage.classList.add('hidden');
 
             try {
-                // VERIFICAÇÃO SE FIREBASE ESTÁ CONFIGURADO
-                if(firebaseConfig.apiKey === "SUA_API_KEY") {
-                    throw new Error("O Firebase não foi configurado. Preencha a constante 'firebaseConfig' no código HTML.");
+                // VERIFICAÇÃO SE SUPABASE ESTÁ CONFIGURADO
+                if(SUPABASE_URL === "SUA_SUPABASE_URL") {
+                    throw new Error("O Supabase não foi configurado. Preencha as constantes 'SUPABASE_URL' e 'SUPABASE_ANON_KEY' no código HTML.");
                 }
 
-                // Salvar no Firestore
-                // OBS: Certifique-se de ter descomentado a inicialização do Firebase lá em cima
-                // e configurado as regras do Firestore para permitir escrita.
+                // Salvar no Supabase
+                // OBS: Certifique-se de ter descomentado a inicialização do Supabase lá em cima
+                // e criado uma tabela chamada 'respostas_onboarding' no seu banco de dados Supabase
+                // com uma coluna do tipo JSONB chamada 'dados' e habilitado permissões de inserção (RLS).
                 /*
-                await addDoc(collection(db, "respostas_onboarding"), {
-                    respostas: answers,
-                    data_envio: serverTimestamp(),
-                    nome_cliente: answers['Qual o seu nome?'] || 'Não informado',
-                    empresa: answers['Qual o nome da sua empresa?'] || 'Não informada'
-                });
+                const { data, error } = await supabaseClient
+                    .from('respostas_onboarding')
+                    .insert([{ 
+                        dados: answers, 
+                        nome_cliente: answers['Qual o seu nome?'] || 'Não informado',
+                        empresa: answers['Qual o nome da sua empresa?'] || 'Não informada'
+                    }]);
+
+                if (error) throw error;
                 */
 
                 // Simulação de sucesso se o código acima estiver comentado
