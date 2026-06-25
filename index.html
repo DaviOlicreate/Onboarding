@@ -72,12 +72,11 @@
         // ==========================================
         // ⚠️ ATENÇÃO: COLOQUE SUAS CREDENCIAIS AQUI!
         // ==========================================
-        const SUPABASE_URL = "SUA_SUPABASE_URL";
-        const SUPABASE_ANON_KEY = "SUA_SUPABASE_ANON_KEY";
+        const SUPABASE_URL = "https://xcgueapbqzhapwckbhgd.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhjZ3VlYXBicXpoYXB3Y2tiaGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI0MDMwMzIsImV4cCI6MjA5Nzk3OTAzMn0.Sa1sWQeDfY5c5RTeNLK9TQPstN9-mTh-eu5zZK8U16U";
 
         // Inicializa o Supabase
-        // Descomente a linha abaixo quando inserir as credenciais
-        // const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         // ==========================================
         // LÓGICA DO FORMULÁRIO
@@ -184,10 +183,6 @@
                 }
 
                 // Salvar no Supabase
-                // OBS: Certifique-se de ter descomentado a inicialização do Supabase lá em cima
-                // e criado uma tabela chamada 'respostas_onboarding' no seu banco de dados Supabase
-                // com uma coluna do tipo JSONB chamada 'dados' e habilitado permissões de inserção (RLS).
-                /*
                 const { data, error } = await supabaseClient
                     .from('respostas_onboarding')
                     .insert([{ 
@@ -197,11 +192,8 @@
                     }]);
 
                 if (error) throw error;
-                */
 
-                // Simulação de sucesso se o código acima estiver comentado
-                await new Promise(r => setTimeout(r, 1000));
-                console.log("Dados que seriam enviados:", answers);
+                console.log("Dados enviados com sucesso:", answers);
                 
                 // Sucesso
                 statusMessage.classList.remove('hidden', 'bg-red-50', 'text-red-700');
