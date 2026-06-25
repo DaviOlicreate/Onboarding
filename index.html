@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Onboarding - Formulário</title>
+    <!-- Tailwind CSS para estilização -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <style>
+        /* Esconde a barra de rolagem no container principal para um visual mais limpo */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
+    </style>
+</head>
+<body class="bg-[#5b58ff] min-h-screen font-sans text-gray-800">
+
+    <!-- CONTAINER PRINCIPAL DO FORMULÁRIO -->
+    <div class="py-12 px-4 flex justify-center w-full">
+        <div class="bg-white w-full max-w-3xl shadow-2xl rounded-lg p-8 md:p-12">
+            
+            <!-- CABEÇALHO -->
+            <div class="mb-10 text-center md:text-left">
+                <h1 class="text-3xl font-bold text-gray-900 mb-4">Parceria de sucesso!</h1>
+                <p class="text-gray-600 text-sm leading-relaxed mb-4">
+                    Para darmos início ao projeto, peço que, por favor, preencha o formulário a seguir. Sabemos que ele pode parecer extenso, mas cada pergunta foi elaborada para nos fornecer um entendimento completo sobre sua empresa e sobre o seu produto/serviço.
+                </p>
+                <p class="text-gray-600 text-sm leading-relaxed mb-4">
+                    Agradeço desde já pela colaboração e estou à disposição para qualquer dúvida ou apoio que você precisar durante o preenchimento.
+                </p>
+            </div>
+
+            <!-- ALERTA DE STATUS (Sucesso/Erro) -->
+            <div id="status-message" class="hidden mb-6 p-4 rounded-md font-medium text-sm"></div>
+
+            <!-- LISTA DE PERGUNTAS -->
+            <form id="onboarding-form" class="space-y-6">
+                <div id="questions-container" class="space-y-6">
+                    <!-- As perguntas serão geradas via JavaScript ao carregar a página -->
+                </div>
+
+                <!-- BOTÃO DE ENVIAR -->
+                <div class="mt-8 pt-6 border-t border-gray-100 flex justify-end">
+                    <button type="submit" id="submit-btn" class="bg-[#0060ff] hover:bg-blue-700 transition-colors text-white font-medium py-3 px-8 rounded-md text-sm flex items-center justify-center">
+                        <span id="btn-text">Enviar Respostas</span>
+                        <svg id="btn-spinner" class="animate-spin ml-2 h-4 w-4 text-white hidden" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- LÓGICA DO FIREBASE E DO FORMULÁRIO -->
+    <script type="module">
+        // Importa o Firebase SDK (v10 Modular)
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        // ==========================================
+        // ⚠️ ATENÇÃO: COLOQUE SUAS CREDENCIAIS AQUI!
+        // ==========================================
+        const firebaseConfig = {
+            apiKey: "SUA_API_KEY",
+            authDomain: "SEU_AUTH_DOMAIN",
+            projectId: "SEU_PROJECT_ID",
+            storageBucket: "SEU_STORAGE_BUCKET",
+            messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+            appId: "SEU_APP_ID"
+        };
+
+        // Inicializa o Firebase
+        // Descomente as duas linhas abaixo quando inserir as credenciais do Firebase
+        // const app = initializeApp(firebaseConfig);
+        // const db = getFirestore(app);
+
+        // ==========================================
+        // LÓGICA DO FORMULÁRIO
+        // ==========================================
+        
+        // Dados Iniciais das Perguntas extraídos do arquivo original
+        const initialQuestions = [
+            { id: 'q1', type: 'input', text: 'Qual o seu nome?' },
+            { id: 'q2', type: 'input', text: 'Qual o nome da sua empresa?' },
+            { id: 'q3', type: 'input', text: 'Qual o seu principal objetivo com o início de nossa parceria?' },
+            { id: 'q4', type: 'input', text: 'Em quantos meses você espera atingir o objetivo acima?' },
+            { id: 'q5', type: 'textarea', text: 'Agora vamos lá, primeiramente gostaríamos de entender um pouco melhor sobre sua empresa: Qual a história da empresa?' },
+            { id: 'q6', type: 'input', text: 'Qual foi a média de faturamento mensal nos últimos 12 meses ?' },
+            { id: 'q7', type: 'input', text: 'Quais os canais são responsáveis pelo faturamento da empresa? Exemplo: Site, WhastApp, Loja Física' },
+            { id: 'q8', type: 'input', text: 'Qual o ticket médio da sua empresa?' },
+            { id: 'q9', type: 'input', text: 'Qual o atual momento da empresa?' },
+            { id: 'q10', type: 'textarea', text: 'Quais os pontos fortes da sua empresa?' },
+            { id: 'q11', type: 'textarea', text: 'Quais os pontos fracos/que podem ser melhorados?' },
+            { id: 'q12', type: 'textarea', text: 'Qual ou quais são os produtos mais vendidos?' },
+            { id: 'q13', type: 'textarea', text: 'Os produtos/serviços que estão disponíveis para o ano todo?' },
+            { id: 'q14', type: 'input', text: 'De quanto em quanto tempo vocês fazem gravações de novos conteúdos?' },
+            { id: 'q15', type: 'input', text: 'A empresa já possui presença ativa em quais redes sociais e mecanismos de busca? *Obrigatório', required: true },
+            { id: 'q16', type: 'textarea', text: 'Quais são os diferenciais competitivos da empresa?' },
+            { id: 'q17', type: 'input', text: 'Qual a recorrência de compras dos clientes ?' },
+            { id: 'q18', type: 'textarea', text: 'Hoje quais são as principais concorrentes da sua empresa?' },
+            { id: 'q19', type: 'input', text: 'Sobre o seu público alvo: Qual o gênero de maior parte do seu público alvo?' },
+            { id: 'q20', type: 'input', text: 'Qual a faixa etária da maior parte dos compradores?' },
+            { id: 'q21', type: 'textarea', text: 'Se fosse descrever a sua cliente ideal, como ela seria?' },
+            { id: 'q22', type: 'input', text: 'Em qual região reside o seu público comprador?' },
+            { id: 'q23', type: 'input', text: 'Agora queremos saber sobre tráfego pago: Qual plataforma vocês já investiram em anúncios?' },
+            { id: 'q24', type: 'textarea', text: 'O que fez com que você buscasse uma empresa de gestão de tráfego?' },
+            { id: 'q25', type: 'input', text: 'Se tiver um site, quem será o responsável pela otimização do seu site? Realizar alterações que forem solicitadas/sugeridas' },
+            { id: 'q26', type: 'input', text: 'Existe um atendimento treinado no WhatsApp?' },
+            { id: 'q27', type: 'input', text: 'O seu site já possui as principais ferramentas de análise instaladas?' },
+            { id: 'q28', type: 'input', text: 'Você tem o acesso (Login e Senha) das plataformas de anúncio?' },
+            { id: 'q29', type: 'textarea', text: 'Existe alguma consideração/pontuação que você gostaria de fazer?' },
+            { id: 'q30', type: 'textarea', text: 'Por fim, o que você espera que entreguemos, além dos resultados, para que você diga "Entregaram o que eu precisava"?' }
+        ];
+
+        const container = document.getElementById('questions-container');
+
+        // Função para criar o HTML de uma pergunta
+        function createQuestionElement(q) {
+            const div = document.createElement('div');
+            div.className = 'question-block group relative bg-white border border-transparent hover:border-gray-200 p-2 -mx-2 rounded transition-colors';
+            
+            // Rótulo da pergunta
+            const label = document.createElement('label');
+            label.className = 'block text-gray-800 text-[15px] font-medium mb-2 w-full';
+            label.innerText = q.text;
+            label.htmlFor = q.id;
+
+            // Campo de Input
+            const inputContainer = document.createElement('div');
+            const requiredAttr = q.required ? 'required' : '';
+            
+            if (q.type === 'input') {
+                inputContainer.innerHTML = `<input type="text" id="${q.id}" name="${q.id}" placeholder="Sua resposta" ${requiredAttr} class="w-full border border-gray-300 rounded-md p-2 px-3 text-sm bg-white text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-shadow">`;
+            } else {
+                inputContainer.innerHTML = `<textarea id="${q.id}" name="${q.id}" placeholder="Sua resposta" rows="4" ${requiredAttr} class="w-full border border-gray-300 rounded-md p-2 px-3 text-sm bg-white text-gray-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none transition-shadow resize-y"></textarea>`;
+            }
+
+            div.appendChild(label);
+            div.appendChild(inputContainer);
+
+            return div;
+        }
+
+        // Renderizar todas as perguntas
+        function renderQuestions() {
+            initialQuestions.forEach(q => {
+                container.appendChild(createQuestionElement(q));
+            });
+        }
+
+        // Lidar com o envio do formulário
+        document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnText = document.getElementById('btn-text');
+            const btnSpinner = document.getElementById('btn-spinner');
+            const submitBtn = document.getElementById('submit-btn');
+            const statusMessage = document.getElementById('status-message');
+            
+            // Coletar dados
+            const formData = new FormData(e.target);
+            const answers = {};
+            
+            // Mapeia os dados coletados junto com a pergunta original
+            initialQuestions.forEach(q => {
+                answers[q.text] = formData.get(q.id) || "";
+            });
+
+            // Estado de carregamento
+            submitBtn.disabled = true;
+            btnText.innerText = 'Enviando...';
+            btnSpinner.classList.remove('hidden');
+            statusMessage.classList.add('hidden');
+
+            try {
+                // VERIFICAÇÃO SE FIREBASE ESTÁ CONFIGURADO
+                if(firebaseConfig.apiKey === "SUA_API_KEY") {
+                    throw new Error("O Firebase não foi configurado. Preencha a constante 'firebaseConfig' no código HTML.");
+                }
+
+                // Salvar no Firestore
+                // OBS: Certifique-se de ter descomentado a inicialização do Firebase lá em cima
+                // e configurado as regras do Firestore para permitir escrita.
+                /*
+                await addDoc(collection(db, "respostas_onboarding"), {
+                    respostas: answers,
+                    data_envio: serverTimestamp(),
+                    nome_cliente: answers['Qual o seu nome?'] || 'Não informado',
+                    empresa: answers['Qual o nome da sua empresa?'] || 'Não informada'
+                });
+                */
+
+                // Simulação de sucesso se o código acima estiver comentado
+                await new Promise(r => setTimeout(r, 1000));
+                console.log("Dados que seriam enviados:", answers);
+                
+                // Sucesso
+                statusMessage.classList.remove('hidden', 'bg-red-50', 'text-red-700');
+                statusMessage.classList.add('bg-green-50', 'text-green-700');
+                statusMessage.innerText = 'Formulário enviado com sucesso! Muito obrigado.';
+                e.target.reset(); // Limpa o formulário
+
+            } catch (error) {
+                console.error("Erro ao enviar dados:", error);
+                // Erro
+                statusMessage.classList.remove('hidden', 'bg-green-50', 'text-green-700');
+                statusMessage.classList.add('bg-red-50', 'text-red-700');
+                statusMessage.innerText = error.message || 'Ocorreu um erro ao enviar o formulário. Tente novamente.';
+            } finally {
+                // Restaura o botão
+                submitBtn.disabled = false;
+                btnText.innerText = 'Enviar Respostas';
+                btnSpinner.classList.add('hidden');
+            }
+        });
+
+        // Inicia
+        renderQuestions();
+    </script>
+</body>
+</html>
